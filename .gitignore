@@ -12,3 +12,41 @@
 /captures
 .externalNativeBuild
 .cxx
+
+# built application files
+*.apk
+*.ap_
+
+# files for the dex VM
+*.dex
+
+# Java class files
+*.class
+
+# generated files
+bin/
+gen/
+proguard/
+R.java
+*/.cxx/
+
+# Local configuration file (sdk path, etc)
+local.properties
+
+# vi swap files
+*.swp
+
+# emacs
+*~
+
+# android studio / intellij stuff
+.idea/
+*/build/*
+/build
+.gradle/
+*.iml
+
+# osx stuff
+.DS_Store
+
+.metadata
