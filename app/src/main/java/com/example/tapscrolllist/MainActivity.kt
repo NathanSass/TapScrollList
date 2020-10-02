@@ -1,10 +1,10 @@
 package com.example.tapscrolllist
 
-import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import android.view.MotionEvent
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.get
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import kotlin.math.abs
@@ -21,7 +21,6 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val viewManager = LinearLayoutManager(this)
         val data = "abcdefghijklmnopqrstuvwxyz".split("").toTypedArray()
         viewAdapter = MyAdapter(data)
 
@@ -30,13 +29,14 @@ class MainActivity : AppCompatActivity() {
             // in content do not change the layout size of the RecyclerView
             setHasFixedSize(true)
 
+            val viewManager = LinearLayoutManager(context)
             // use a linear layout manager
             layoutManager = viewManager
 
             // specify an viewAdapter (see also next example)
             adapter = viewAdapter
 
-            addOnItemTouchListener(CoolTouchInterceptor())
+            addOnItemTouchListener(TapToScrollTouchInterceptor(viewManager, this))
             addOnScrollListener(object : RecyclerView.OnScrollListener() {
                 override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                     super.onScrolled(recyclerView, dx, dy)
@@ -55,12 +55,19 @@ class MainActivity : AppCompatActivity() {
     }
 }
 
-class CoolTouchInterceptor : RecyclerView.OnItemTouchListener {
+class TapToScrollTouchInterceptor(private val layoutManager: LinearLayoutManager, private val recyclerView: RecyclerView) : RecyclerView.OnItemTouchListener {
 
-    var firstEvent: Float? = null
+    private companion object {
+        const val TAG = "TapToScrollInterceptor"
+        private const val SWIPE_THRESHOLD = 100
+    }
 
-    val TAG = "TOUCH_INTERCEPTOR"
-    private val SWIPE_THRESHOLD = 100;
+    private var firstEvent: Float? = null
+
+    override fun onInterceptTouchEvent(rv: RecyclerView, e: MotionEvent): Boolean = true
+
+    override fun onRequestDisallowInterceptTouchEvent(disallowIntercept: Boolean) = Unit
+
     override fun onTouchEvent(rv: RecyclerView, e: MotionEvent) {
         if (e.action == MotionEvent.ACTION_MOVE && firstEvent == null) {
             firstEvent = e.y
@@ -68,30 +75,31 @@ class CoolTouchInterceptor : RecyclerView.OnItemTouchListener {
             calculateSwipeDirection(firstEvent!!, e.y)
             firstEvent = null
         }
-
-        //        val layoutManager = rv.layoutManager as LinearLayoutManager
     }
 
     private fun calculateSwipeDirection(yStart: Float, yEnd: Float) {
         val diffY = yEnd - yStart
         if (abs(diffY) > SWIPE_THRESHOLD) {
             if (diffY > 0) {
-                Log.v(TAG, "Swipe DOWN")
+                swipeUp()
             } else {
-                Log.v(TAG, "Swipe UP")
+                swipeDown()
             }
-
         } else {
             Log.v(TAG, "Swipe too small")
         }
 
     }
 
-    override fun onInterceptTouchEvent(rv: RecyclerView, e: MotionEvent): Boolean = true
+    private fun swipeDown() {
+        val lastItemVisiblePosition = layoutManager.findLastVisibleItemPosition()
+        layoutManager.scrollToPositionWithOffset(lastItemVisiblePosition - 1, 0) // neg 1 ruins large views
+    }
 
-    override fun onRequestDisallowInterceptTouchEvent(disallowIntercept: Boolean) = Unit
-}
+    private fun swipeUp() {
+        val firstItemVisiblePosition = layoutManager.findFirstVisibleItemPosition()
+        val height = layoutManager.height - recyclerView[0].height
+        layoutManager.scrollToPositionWithOffset(firstItemVisiblePosition, height)
+    }
 
-class CoolLayoutManager(context: Context) : LinearLayoutManager(context) {
-    override fun canScrollVertically(): Boolean = false
 }
